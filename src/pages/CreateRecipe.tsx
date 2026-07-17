@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Recipe, Category } from '../types';
-import { handleFirestoreError } from '../lib/firestore';
-import { OperationType } from '../types';
-import { Plus, Minus, ChefHat, Save, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { getRecipe, createRecipe, updateRecipe, uploadRecipeImage } from '../lib/api';
+import { Recipe, Ingredient } from '../types';
+import { Plus, Minus, ChefHat, Save, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { isValidImageUrl } from '../lib/utils';
 import { toast } from '../components/ui/Toaster';
 import { motion } from 'motion/react';
@@ -25,150 +22,128 @@ export function CreateRecipe() {
   const [showCustomCuisine, setShowCustomCuisine] = useState(false);
   const [customCuisine, setCustomCuisine] = useState('');
   
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    prepTime: 30,
-    category: DEFAULT_CATEGORIES[0],
-    cuisine: DEFAULT_CUISINES[0],
-    secretTip: '',
-    imageUrl: '',
-    isPublic: true,
+  const [formData, setFormData] = useState<{
+    title: string; description: string; prepTime: number; category: string;
+    cuisine: string; secretTip: string; imageUrl: string; isPublic: boolean;
+    ingredients: Ingredient[]; instructions: string[];
+  }>({
+    title: '', description: '', prepTime: 30,
+    category: DEFAULT_CATEGORIES[0], cuisine: DEFAULT_CUISINES[0],
+    secretTip: '', imageUrl: '', isPublic: true,
     ingredients: [{ name: '', amount: '', unit: '' }],
     instructions: ['']
   });
 
   useEffect(() => {
-    if (id) {
-      const fetchRecipe = async () => {
-        setFetching(true);
-        const docRef = doc(db, 'recipes', id);
-        try {
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data() as Recipe;
-            if (data.authorId !== user?.uid) {
-              navigate('/');
-              return;
-            }
-            
-            const isStandard = DEFAULT_CATEGORIES.includes(data.category);
-            const isStandardCuisine = DEFAULT_CUISINES.includes(data.cuisine || '');
-
-            const formattedIngredients = data.ingredients.map(ing => {
-              if (typeof ing === 'string') {
-                return { name: ing, amount: '', unit: '' };
-              }
-              return ing;
-            });
-
-            setFormData({
-              title: data.title,
-              description: data.description,
-              prepTime: data.prepTime,
-              category: isStandard ? data.category : 'אחר',
-              cuisine: isStandardCuisine ? (data.cuisine || DEFAULT_CUISINES[0]) : 'אחר',
-              secretTip: data.secretTip || '',
-              imageUrl: data.imageUrl || '',
-              isPublic: data.isPublic,
-              ingredients: formattedIngredients as any[],
-              instructions: data.instructions
-            });
-
-            if (!isStandard) {
-              setShowCustomCategory(true);
-              setCustomCategory(data.category);
-            }
-            if (data.cuisine && !isStandardCuisine) {
-              setShowCustomCuisine(true);
-              setCustomCuisine(data.cuisine);
-            }
-          }
-        } catch (error) {
-          console.error(error);
-          toast('שגיאה בטעינת המתכון', 'error');
-        } finally {
-          setFetching(false);
+    if (!id) return;
+    const fetchRecipe = async () => {
+      setFetching(true);
+      try {
+        const data = await getRecipe(id);
+        if (!data || data.authorId !== user?.id) {
+          navigate('/');
+          return;
         }
-      };
-      fetchRecipe();
-    }
+        const isStandard = DEFAULT_CATEGORIES.includes(data.category);
+        const isStandardCuisine = DEFAULT_CUISINES.includes(data.cuisine || '');
+        setFormData({
+          title: data.title,
+          description: data.description,
+          prepTime: data.prepTime,
+          category: isStandard ? data.category : 'אחר',
+          cuisine: isStandardCuisine ? (data.cuisine || DEFAULT_CUISINES[0]) : 'אחר',
+          secretTip: data.secretTip || '',
+          imageUrl: data.imageUrl || '',
+          isPublic: data.isPublic,
+          ingredients: data.ingredients,
+          instructions: data.instructions
+        });
+        if (!isStandard) { setShowCustomCategory(true); setCustomCategory(data.category); }
+        if (data.cuisine && !isStandardCuisine) { setShowCustomCuisine(true); setCustomCuisine(data.cuisine); }
+      } catch (error) {
+        console.error(error);
+        toast('שגיאה בטעינת המתכון', 'error');
+      } finally {
+        setFetching(false);
+      }
+    };
+    fetchRecipe();
   }, [id, user, navigate]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 800000) { // Approx 800KB limit for Base64 in Firestore
-        toast('התמונה גדולה מדי. אנא בחרו תמונה קטנה מ-800KB', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, imageUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('התמונה גדולה מדי. המגבלה היא 5MB', 'error');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadRecipeImage(user.id, file);
+      setFormData(prev => ({ ...prev, imageUrl: url }));
+    } catch (err) {
+      console.error(err);
+      toast('שגיאה בהעלאת התמונה', 'error');
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
-    
+
+    if (formData.category === 'אחר' && !customCategory.trim()) {
+      toast('אנא הזינו שם קטגוריה', 'error');
+      return;
+    }
+    if (formData.cuisine === 'אחר' && !customCuisine.trim()) {
+      toast('אנא הזינו סוג מטבח', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
-      const finalCategory = formData.category === 'אחר' ? customCategory : formData.category;
-      const finalCuisine = formData.cuisine === 'אחר' ? customCuisine : formData.cuisine;
-      
-      if (formData.category === 'אחר' && !customCategory.trim()) {
-        toast('אנא הזינו שם קטגוריה', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const recipeData: any = {
+      const input = {
         title: formData.title,
         description: formData.description,
         prepTime: formData.prepTime,
-        category: finalCategory,
-        cuisine: finalCuisine,
+        category: formData.category === 'אחר' ? customCategory.trim() : formData.category,
+        cuisine: formData.cuisine === 'אחר' ? customCuisine.trim() : formData.cuisine,
         secretTip: formData.secretTip,
         imageUrl: formData.imageUrl,
         isPublic: formData.isPublic,
         ingredients: formData.ingredients,
         instructions: formData.instructions,
-        updatedAt: new Date().toISOString(),
       };
-
       if (id) {
-        await updateDoc(doc(db, 'recipes', id), recipeData);
+        await updateRecipe(id, input);
         toast('המתכון עודכן בהצלחה!');
       } else {
-        recipeData.authorId = user.uid;
-        recipeData.authorName = profile.displayName;
-        recipeData.likesCount = 0;
-        recipeData.createdAt = new Date().toISOString();
-        await addDoc(collection(db, 'recipes'), recipeData);
+        await createRecipe(user.id, input);
         toast('המתכון נוצר בהצלחה!');
       }
       navigate('/profile');
     } catch (error) {
-      handleFirestoreError(error, id ? OperationType.UPDATE : OperationType.CREATE, 'recipes');
+      console.error(error);
       toast('שגיאה בשמירת המתכון', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleListItemChange = (type: 'ingredients' | 'instructions', index: number, value: any) => {
-    const newList = [...formData[type]];
-    newList[index] = value;
-    setFormData({ ...formData, [type]: newList });
+  const handleInstructionChange = (index: number, value: string) => {
+    const instructions = [...formData.instructions];
+    instructions[index] = value;
+    setFormData({ ...formData, instructions });
   };
 
-  const handleIngredientChange = (index: number, field: string, value: string) => {
-    const newIngs = [...formData.ingredients];
-    newIngs[index] = { ...newIngs[index] as any, [field]: value };
-    setFormData({ ...formData, ingredients: newIngs });
+  const handleIngredientChange = (index: number, field: keyof Ingredient, value: string) => {
+    const ingredients = [...formData.ingredients];
+    ingredients[index] = { ...ingredients[index], [field]: value };
+    setFormData({ ...formData, ingredients });
   };
 
   const addListItem = (type: 'ingredients' | 'instructions') => {
@@ -195,7 +170,7 @@ export function CreateRecipe() {
         onClick={() => navigate(-1)} 
         className="flex items-center gap-2 text-stone-500 hover:text-stone-900 mb-8 font-medium transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowRight className="w-4 h-4" />
         חזרה
       </button>
 
@@ -273,7 +248,7 @@ export function CreateRecipe() {
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {formData.ingredients.map((ing: any, i) => (
+                  {formData.ingredients.map((ing, i) => (
                     <div key={i} className="flex flex-col sm:flex-row gap-3 p-4 bg-stone-50 dark:bg-stone-900/50 rounded-2xl border border-stone-100 dark:border-stone-800">
                       <div className="flex-1 space-y-1">
                         <label className="text-xs font-bold text-stone-400 uppercase">שם הרכיב</label>
@@ -357,7 +332,7 @@ export function CreateRecipe() {
                       <textarea
                         required
                         value={step}
-                        onChange={(e) => handleListItemChange('instructions', i, e.target.value)}
+                        onChange={(e) => handleInstructionChange(i, e.target.value)}
                         placeholder="תיאור השלב..."
                         rows={2}
                         className="flex-1 px-4 py-2 rounded-xl border border-stone-200 dark:border-stone-800 outline-none focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 transition-all text-sm resize-none dark:bg-stone-900 text-[var(--foreground)]"
@@ -482,7 +457,11 @@ export function CreateRecipe() {
                 <label 
                   className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 px-3 py-1.5 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/20 cursor-pointer transition-colors flex items-center gap-2"
                 >
-                  <ImageIcon className="w-3.5 h-3.5" />
+                  {uploading ? (
+                    <div className="w-3.5 h-3.5 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  )}
                   בחירה
                   <input
                     type="file"
