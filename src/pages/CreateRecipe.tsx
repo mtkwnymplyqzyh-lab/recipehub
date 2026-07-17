@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getRecipe, createRecipe, updateRecipe, uploadRecipeImage } from '../lib/api';
-import { Recipe, Ingredient } from '../types';
+import { Ingredient } from '../types';
 import { Plus, Minus, ChefHat, Save, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { isValidImageUrl } from '../lib/utils';
 import { toast } from '../components/ui/Toaster';
