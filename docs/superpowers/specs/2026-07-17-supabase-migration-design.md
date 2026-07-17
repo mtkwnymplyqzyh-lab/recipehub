@@ -51,7 +51,7 @@ favorites (
 
 ### מה זה מחליף
 
-- **ספירת לייקים:** אין שדה `likesCount`. הספירה נעשית עם `count` על `favorites` בשאילתה. אין race conditions ואין צורך בטרנזקציית ±1.
+- **ספירת לייקים:** עמודת `likes_count` על `recipes`, מתוחזקת ע"י trigger (SECURITY DEFINER) על INSERT/DELETE ב-`favorites`. הלקוח לא כותב אותה בכלל — אין race conditions ואין צורך בכלל ה-±1. (הערה: ספירה ישירה על `favorites` נפסלה כי RLS מסתיר מועדפים של אחרים והספירה הציבורית הייתה שבורה.)
 - **מחיקת מתכון:** `ON DELETE CASCADE` מנקה מועדפים אוטומטית — אין רשומות יתומות.
 - **יצירת פרופיל:** trigger על `auth.users` (INSERT) יוצר שורת `profiles` עם `display_name` ו-`photo_url` מה-metadata של Google. מחליף את הלוגיקה שהייתה ב-`AuthContext` (ומתקן את באג הספינר האינסופי בכשל רשת).
 
