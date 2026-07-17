@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private information about a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "email"]
+    },
+    "Recipe": {
+      "title": "Recipe",
+      "description": "A recipe created by a user.",
+      "type": "object",
+      "properties": {
+        "recipeId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "ingredients": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "instructions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "prepTime": { "type": "integer" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "cuisine": { "type": "string" },
+        "secretTip": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "likesCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipeId", "authorId", "title", "ingredients", "instructions", "isPublic"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "A mapping between a user and a recipe they liked.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "recipeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "recipeId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles."
+    },
+    "/recipes/{recipeId}": {
+      "schema": "Recipe",
+      "description": "Global collection of recipes."
+    },
+    "/users/{userId}/favorites/{recipeId}": {
+      "schema": "Favorite",
+      "description": "A user's marked favorite recipes."
+    }
+  }
+}
