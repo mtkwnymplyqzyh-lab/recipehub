@@ -1,7 +1,7 @@
 export interface UserProfile {
   userId: string;
   displayName: string;
-  email: string;
+  email?: string; // only known for the signed-in user (comes from auth, not the DB)
   photoURL?: string;
   bio?: string;
   createdAt: string;
@@ -21,7 +21,7 @@ export interface Recipe {
   authorName: string;
   title: string;
   description: string;
-  ingredients: (string | Ingredient)[];
+  ingredients: Ingredient[];
   instructions: string[];
   prepTime: number;
   imageUrl?: string;
@@ -34,34 +34,15 @@ export interface Recipe {
   updatedAt: string;
 }
 
-export interface Favorite {
-  userId: string;
-  recipeId: string;
-  createdAt: string;
-}
-
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  }
+export interface RecipeInput {
+  title: string;
+  description: string;
+  prepTime: number;
+  category: string;
+  cuisine: string;
+  secretTip: string;
+  imageUrl: string;
+  isPublic: boolean;
+  ingredients: Ingredient[];
+  instructions: string[];
 }
