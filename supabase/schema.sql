@@ -111,9 +111,18 @@ create policy "authors update own recipes"
 create policy "authors delete own recipes"
   on public.recipes for delete using (auth.uid() = author_id);
 
--- likes_count is trigger-maintained; block clients from touching it directly is
--- not expressible per-column in RLS, so the API layer never sends it and the
--- update policy above already restricts updates to the author.
+-- Column-level hardening: row policies above say WHICH rows may be written;
+-- these grants say WHICH columns. Clients may never write counter/audit
+-- columns (likes_count, created_at, updated_at) or reassign author_id after
+-- creation. The bump_likes trigger runs as definer and is unaffected.
+revoke insert, update on table public.recipes from anon, authenticated;
+grant insert (author_id, title, description, prep_time, category, cuisine, secret_tip, image_url, is_public, ingredients, instructions)
+  on table public.recipes to authenticated;
+grant update (title, description, prep_time, category, cuisine, secret_tip, image_url, is_public, ingredients, instructions)
+  on table public.recipes to authenticated;
+
+revoke update on table public.profiles from anon, authenticated;
+grant update (display_name, photo_url, bio) on table public.profiles to authenticated;
 
 -- favorites: strictly private.
 create policy "users read own favorites"
