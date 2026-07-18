@@ -106,13 +106,11 @@ export function Profile() {
       <header className="bg-[var(--card)] rounded-[40px] p-10 border border-[var(--border)] shadow-sm flex flex-col md:flex-row items-center gap-10">
         <div className="relative group">
           <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-stone-50 dark:border-stone-800 shadow-inner">
-            {profile?.photoURL ? (
-              <img src={profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-300 dark:text-stone-600">
-                <UserIcon className="w-16 h-16" />
-              </div>
-            )}
+            <img
+              src={profile?.photoURL || '/default-avatar.png'}
+              alt={profile?.displayName || 'שף'}
+              className="w-full h-full object-cover"
+            />
           </div>
           {isOwnProfile && (
             <button 

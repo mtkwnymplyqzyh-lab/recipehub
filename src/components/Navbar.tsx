@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { User, LogOut, UtensilsCrossed } from 'lucide-react';
+import { LogOut, UtensilsCrossed } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
@@ -35,13 +35,11 @@ export function Navbar() {
           {user ? (
             <div className="flex items-center gap-3">
               <Link to="/profile" className="flex items-center gap-2 group border-r border-stone-200 dark:border-stone-700 pr-4">
-                {profile?.photoURL ? (
-                  <img src={profile.photoURL} alt={profile.displayName} className="w-8 h-8 rounded-full border-2 border-primary-100" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center border-2 border-primary-200/50">
-                    <User className="w-4 h-4 text-primary-600" />
-                  </div>
-                )}
+                <img
+                  src={profile?.photoURL || '/default-avatar.png'}
+                  alt={profile?.displayName || 'שף'}
+                  className="w-8 h-8 rounded-full border-2 border-primary-100 object-cover"
+                />
                 <span className="text-sm font-bold hidden sm:inline text-[var(--foreground)] group-hover:text-primary-600 transition-colors">{profile?.displayName || 'שף'}</span>
               </Link>
               <button
