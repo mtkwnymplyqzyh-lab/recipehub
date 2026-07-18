@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  User, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut 
-} from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { getProfile } from '../lib/api';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
@@ -26,45 +20,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Fetch or create profile
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
-        
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as UserProfile);
-        } else {
-          const newProfile: UserProfile = {
-            userId: user.uid,
-            displayName: user.displayName || 'Chef',
-            email: user.email || '',
-            photoURL: user.photoURL || undefined,
-            createdAt: new Date().toISOString(),
-          };
-          try {
-            await setDoc(userRef, newProfile);
-          } catch (err) {
-            console.error('Failed to create user profile:', err);
-          }
-          setProfile(newProfile);
-        }
-      } else {
-        setProfile(null);
+    let cancelled = false;
+
+    const loadProfile = async (nextUser: User | null) => {
+      if (!nextUser) {
+        if (!cancelled) setProfile(null);
+        return;
       }
-      setLoading(false);
+      try {
+        const p = await getProfile(nextUser.id);
+        if (!cancelled && p) setProfile({ ...p, email: nextUser.email ?? undefined });
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
+    };
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const nextUser = session?.user ?? null;
+      if (!cancelled) setUser(nextUser);
+      await loadProfile(nextUser);
+      if (!cancelled) setLoading(false);
     });
 
-    return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      loadProfile(nextUser);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
   };
 
-  const logout = () => signOut(auth);
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, signIn, logout }}>

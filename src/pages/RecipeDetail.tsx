@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getRecipe, isFavorite as fetchIsFavorite, toggleFavorite, deleteRecipe } from '../lib/api';
 import { Recipe } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, ChefHat, Heart, ArrowLeft, Edit2, Trash2, CheckCircle2, User, Utensils, Sparkles, MapPin } from 'lucide-react';
+import { Clock, ChefHat, Heart, ArrowRight, Edit2, Trash2, CheckCircle2, User, Utensils, Sparkles, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from '../components/ui/Toaster';
@@ -19,30 +18,29 @@ export function RecipeDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
     const fetchData = async () => {
-      if (!id) return;
       try {
-        const recipePromise = getDoc(doc(db, 'recipes', id));
-        const favPromise = user
-          ? getDoc(doc(db, 'users', user.uid, 'favorites', id))
-          : Promise.resolve(null);
-
-        const [docSnap, favSnap] = await Promise.all([recipePromise, favPromise]);
-
-        if (docSnap.exists()) {
-          setRecipe({ id: docSnap.id, ...docSnap.data() } as Recipe);
+        const [recipeData, fav] = await Promise.all([
+          getRecipe(id),
+          user ? fetchIsFavorite(user.id, id) : Promise.resolve(false),
+        ]);
+        if (cancelled) return;
+        if (recipeData) {
+          setRecipe(recipeData);
+          setIsFavorite(fav);
         } else {
           navigate('/');
         }
-        if (favSnap) setIsFavorite(favSnap.exists());
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
     fetchData();
+    return () => { cancelled = true; };
   }, [id, user, navigate]);
 
   const handleLike = async () => {
@@ -50,45 +48,28 @@ export function RecipeDetail() {
       toast('אנא התחברו כדי לשמור מתכונים למועדפים', 'error');
       return;
     }
-
-    const favRef = doc(db, 'users', user.uid, 'favorites', id);
-    const recipeRef = doc(db, 'recipes', id);
-    const wasAlreadyFavorite = isFavorite;
-
+    const wasFavorite = isFavorite;
     try {
-      await runTransaction(db, async (transaction) => {
-        const recipeSnap = await transaction.get(recipeRef);
-        if (!recipeSnap.exists()) throw new Error('Recipe not found');
-
-        const currentCount = recipeSnap.data().likesCount || 0;
-
-        if (wasAlreadyFavorite) {
-          transaction.delete(favRef);
-          transaction.update(recipeRef, { likesCount: Math.max(0, currentCount - 1) });
-        } else {
-          transaction.set(favRef, { createdAt: new Date().toISOString(), recipeId: id });
-          transaction.update(recipeRef, { likesCount: currentCount + 1 });
-        }
-      });
-
-      setIsFavorite(!wasAlreadyFavorite);
+      await toggleFavorite(user.id, id, wasFavorite);
+      setIsFavorite(!wasFavorite);
       setRecipe(prev => prev ? {
         ...prev,
-        likesCount: wasAlreadyFavorite
-          ? Math.max(0, (prev.likesCount || 1) - 1)
-          : (prev.likesCount || 0) + 1
+        likesCount: wasFavorite ? Math.max(0, prev.likesCount - 1) : prev.likesCount + 1
       } : null);
     } catch (err) {
+      console.error(err);
       toast('שגיאה בעדכון המועדפים', 'error');
     }
   };
 
   const handleDelete = async () => {
+    if (!id) return;
     try {
-      await deleteDoc(doc(db, 'recipes', id!));
+      await deleteRecipe(id, recipe?.imageUrl);
       toast('המתכון נמחק');
       navigate('/profile');
     } catch (err) {
+      console.error(err);
       toast('שגיאה במחיקת המתכון', 'error');
     }
   };
@@ -96,7 +77,7 @@ export function RecipeDetail() {
   if (loading) return null;
   if (!recipe) return null;
 
-  const isAuthor = user?.uid === recipe.authorId;
+  const isAuthor = user?.id === recipe.authorId;
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
@@ -106,7 +87,7 @@ export function RecipeDetail() {
           className="flex items-center gap-2 text-stone-500 hover:text-stone-900 font-medium transition-colors"
           aria-label="חזרה לעמוד הקודם"
         >
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+          <ArrowRight className="w-4 h-4" aria-hidden="true" />
           חזרה
         </button>
 
@@ -178,11 +159,9 @@ export function RecipeDetail() {
                 <li key={i} className="flex items-center justify-between gap-3 text-stone-600 dark:text-stone-300 font-medium bg-stone-50/50 dark:bg-stone-900/50 p-4 rounded-2xl border border-transparent hover:border-primary-100 dark:hover:border-primary-900/10 transition-colors">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-2 h-2 rounded-full bg-primary-400" aria-hidden="true" />
-                    <span className="font-bold">
-                      {typeof ing === 'string' ? ing : ing.name}
-                    </span>
+                    <span className="font-bold">{ing.name}</span>
                   </div>
-                  {typeof ing !== 'string' && (ing.amount || ing.unit) && (
+                  {(ing.amount || ing.unit) && (
                     <div className="flex items-center gap-1 bg-white dark:bg-stone-800 px-3 py-1 rounded-xl border border-stone-100 dark:border-stone-700 text-xs font-bold text-stone-500 dark:text-stone-400">
                       {ing.amount && <span>{ing.amount}</span>}
                       {ing.unit && <span>{ing.unit}</span>}

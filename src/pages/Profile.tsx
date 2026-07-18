@@ -3,12 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserRecipes } from '../hooks/useRecipes';
 import { RecipeCard } from '../components/RecipeCard';
-import { ChefHat, Heart, Book, Settings, User as UserIcon, X, Save } from 'lucide-react';
+import { ChefHat, Heart, Book, Settings, User as UserIcon, X, Save, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { isValidImageUrl } from '../lib/utils';
-import { db } from '../lib/firebase';
+import { getProfile, updateProfile, getFavoriteRecipes, uploadRecipeImage } from '../lib/api';
+import { toast } from '../components/ui/Toaster';
 import { Recipe, UserProfile } from '../types';
 
 export function Profile() {
@@ -22,25 +21,22 @@ export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ displayName: '', bio: '', photoURL: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const id = userId || currentUser?.uid;
-  const isOwnProfile = id === currentUser?.uid;
+  const id = userId || currentUser?.id;
+  const isOwnProfile = id === currentUser?.id;
 
   const { recipes, loading } = useUserRecipes(id || '', isOwnProfile);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!id) return;
-      if (isOwnProfile && currentProfile) {
-        setProfile(currentProfile);
-      } else {
-        const docSnap = await getDoc(doc(db, 'users', id));
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
-        }
-      }
-    };
-    fetchProfile();
+    if (!id) return;
+    if (isOwnProfile && currentProfile) {
+      setProfile(currentProfile);
+      return;
+    }
+    getProfile(id)
+      .then(p => { if (p) setProfile(p); })
+      .catch(err => console.error(err));
   }, [id, isOwnProfile, currentProfile]);
 
   useEffect(() => {
@@ -54,29 +50,14 @@ export function Profile() {
   }, [profile]);
 
   useEffect(() => {
-    const fetchFavs = async () => {
-      if (!id || activeTab !== 'favorites') return;
-      setLoadingFavs(true);
-      try {
-        const favsSnap = await getDocs(collection(db, 'users', id, 'favorites'));
-        const recipeIds = favsSnap.docs.map(d => d.data().recipeId);
-        
-        if (recipeIds.length > 0) {
-          const snaps = await Promise.all(recipeIds.map(rid => getDoc(doc(db, 'recipes', rid))));
-          const recipesRes = snaps
-            .filter(s => s.exists())
-            .map(s => ({ id: s.id, ...s.data() } as Recipe));
-          setFavRecipes(recipesRes);
-        } else {
-          setFavRecipes([]);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingFavs(false);
-      }
-    };
-    fetchFavs();
+    if (!id || activeTab !== 'favorites') return;
+    let cancelled = false;
+    setLoadingFavs(true);
+    getFavoriteRecipes(id)
+      .then(r => { if (!cancelled) setFavRecipes(r); })
+      .catch(err => console.error(err))
+      .finally(() => { if (!cancelled) setLoadingFavs(false); });
+    return () => { cancelled = true; };
   }, [id, activeTab]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -84,19 +65,37 @@ export function Profile() {
     if (!currentUser) return;
     setSaving(true);
     try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
+      await updateProfile(currentUser.id, {
         displayName: editForm.displayName,
         bio: editForm.bio,
-        photoURL: editForm.photoURL
+        photoURL: editForm.photoURL,
       });
       setProfile(prev => prev ? { ...prev, ...editForm } : null);
       setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert('שגיאה בעדכון הפרופיל');
+      toast('שגיאה בעדכון הפרופיל', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('התמונה גדולה מדי. המגבלה היא 5MB', 'error');
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadRecipeImage(currentUser.id, file);
+      setEditForm(prev => ({ ...prev, photoURL: url }));
+    } catch (err) {
+      console.error(err);
+      toast('שגיאה בהעלאת התמונה', 'error');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -188,21 +187,21 @@ export function Profile() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-widest text-stone-400">כתובת URL לתמונה</label>
-                    <input 
-                      type="url"
-                      value={editForm.photoURL}
-                      onChange={(e) => {
-                        const url = e.target.value;
-                        if (url === '' || isValidImageUrl(url)) {
-                          setEditForm(prev => ({ ...prev, photoURL: url }));
-                        }
-                      }}
-                      placeholder="הדביקו קישור לתמונת פרופיל..."
-                      className="w-full bg-stone-50 dark:bg-stone-900 border border-[var(--border)] rounded-2xl px-4 py-2 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all text-xs dark:text-stone-300"
+                  <label className="inline-flex items-center gap-2 text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl hover:bg-primary-100 cursor-pointer transition-colors">
+                    {uploadingPhoto ? (
+                      <div className="w-3.5 h-3.5 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    העלאת תמונה מהמכשיר
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
                     />
-                  </div>
+                  </label>
                 </div>
 
                 <div className="space-y-2">

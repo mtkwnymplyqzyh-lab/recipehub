@@ -42,10 +42,7 @@ export function Home() {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       r.title.toLowerCase().includes(q) ||
-      r.ingredients.some(i => {
-        const name = typeof i === 'string' ? i : i.name;
-        return name.toLowerCase().includes(q);
-      });
+      r.ingredients.some(i => i.name.toLowerCase().includes(q));
 
     const matchesCuisine = activeCuisine === 'הכל' || r.cuisine === activeCuisine;
 
