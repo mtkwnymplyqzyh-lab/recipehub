@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Utensils } from 'lucide-react';
 import { useRecipes } from '../hooks/useRecipes';
@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
+import { useOnboardingTour } from '../hooks/useOnboardingTour';
 
 const CATEGORIES: (Category | 'הכל')[] = ['הכל', 'בשרי', 'חלבי', 'טבעוני', 'צמחוני', 'קינוחים', 'אחר'];
 
@@ -19,6 +20,12 @@ export function Home() {
   const [activeCuisine, setActiveCuisine] = useState<string | 'הכל'>('הכל');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { startIfNotSeen } = useOnboardingTour();
+
+  useEffect(() => {
+    startIfNotSeen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cuisines = useMemo(
     () => ['הכל', ...Array.from(new Set(recipes.map(r => r.cuisine).filter(Boolean))) as string[]],
@@ -67,6 +74,7 @@ export function Home() {
               onClick={handleCreateClick}
               className="bg-primary-500 text-white px-10 py-4 rounded-2xl font-bold hover:bg-primary-600 transition-all shadow-xl shadow-primary-200 dark:shadow-none active:scale-95 flex items-center gap-3 cursor-pointer text-lg"
               id="add-recipe-hero-btn"
+              data-tour="create-recipe"
             >
               <Utensils className="w-6 h-6" aria-hidden="true" />
               הוספת מתכון חדש
@@ -79,7 +87,7 @@ export function Home() {
           onClose={() => setIsAuthModalOpen(false)}
         />
 
-        <div className="relative max-w-lg mx-auto group">
+        <div className="relative max-w-lg mx-auto group" data-tour="search">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-primary-500 transition-colors" aria-hidden="true" />
           <input
             type="search"
@@ -126,7 +134,7 @@ export function Home() {
       </section>
 
       <div className="space-y-12">
-        <div className="flex flex-wrap items-center justify-center gap-3" role="group" aria-label="סינון לפי קטגוריה">
+        <div className="flex flex-wrap items-center justify-center gap-3" role="group" aria-label="סינון לפי קטגוריה" data-tour="categories">
           {CATEGORIES.map(cat => (
             <button
               key={cat}

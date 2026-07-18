@@ -7,10 +7,12 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { OnboardingTourProvider } from './hooks/useOnboardingTour';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import { RecipeDetail } from './pages/RecipeDetail';
 import { Toaster } from './components/ui/Toaster';
+import { OnboardingTour } from './components/OnboardingTour';
 
 const CreateRecipe = lazy(() => import('./pages/CreateRecipe').then(m => ({ default: m.CreateRecipe })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
@@ -60,15 +62,18 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <Router>
-          <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] selection:bg-primary-100 selection:text-primary-900 font-sans transition-colors duration-300" dir="rtl">
-            <Navbar />
-            <main className="max-w-7xl mx-auto px-4 py-8">
-              <AppRoutes />
-            </main>
-            <Toaster />
-          </div>
-        </Router>
+        <OnboardingTourProvider>
+          <Router>
+            <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] selection:bg-primary-100 selection:text-primary-900 font-sans transition-colors duration-300" dir="rtl">
+              <Navbar />
+              <main className="max-w-7xl mx-auto px-4 py-8">
+                <AppRoutes />
+              </main>
+              <Toaster />
+              <OnboardingTour />
+            </div>
+          </Router>
+        </OnboardingTourProvider>
       </ThemeProvider>
     </AuthProvider>
   );

@@ -1,0 +1,16 @@
+{
+  "name": "RecipeHub — כל המתכונים שלך במקום אחד",
+  "short_name": "RecipeHub",
+  "description": "שמור, ארגן ושתף מתכונים בקלות.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDF8FC",
+  "theme_color": "#8B3A6E",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
