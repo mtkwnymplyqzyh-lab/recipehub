@@ -3,11 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserRecipes } from '../hooks/useRecipes';
 import { RecipeCard } from '../components/RecipeCard';
-import { ChefHat, Heart, Book, Settings, User as UserIcon, X, Save } from 'lucide-react';
+import { ChefHat, Heart, Book, Settings, User as UserIcon, X, Save, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { isValidImageUrl } from '../lib/utils';
-import { getProfile, updateProfile, getFavoriteRecipes } from '../lib/api';
+import { getProfile, updateProfile, getFavoriteRecipes, uploadRecipeImage } from '../lib/api';
 import { toast } from '../components/ui/Toaster';
 import { Recipe, UserProfile } from '../types';
 
@@ -22,6 +21,7 @@ export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ displayName: '', bio: '', photoURL: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const id = userId || currentUser?.id;
   const isOwnProfile = id === currentUser?.id;
@@ -77,6 +77,25 @@ export function Profile() {
       toast('שגיאה בעדכון הפרופיל', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('התמונה גדולה מדי. המגבלה היא 5MB', 'error');
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadRecipeImage(currentUser.id, file);
+      setEditForm(prev => ({ ...prev, photoURL: url }));
+    } catch (err) {
+      console.error(err);
+      toast('שגיאה בהעלאת התמונה', 'error');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -168,21 +187,21 @@ export function Profile() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-widest text-stone-400">כתובת URL לתמונה</label>
-                    <input 
-                      type="url"
-                      value={editForm.photoURL}
-                      onChange={(e) => {
-                        const url = e.target.value;
-                        if (url === '' || isValidImageUrl(url)) {
-                          setEditForm(prev => ({ ...prev, photoURL: url }));
-                        }
-                      }}
-                      placeholder="הדביקו קישור לתמונת פרופיל..."
-                      className="w-full bg-stone-50 dark:bg-stone-900 border border-[var(--border)] rounded-2xl px-4 py-2 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all text-xs dark:text-stone-300"
+                  <label className="inline-flex items-center gap-2 text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl hover:bg-primary-100 cursor-pointer transition-colors">
+                    {uploadingPhoto ? (
+                      <div className="w-3.5 h-3.5 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    העלאת תמונה מהמכשיר
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
                     />
-                  </div>
+                  </label>
                 </div>
 
                 <div className="space-y-2">

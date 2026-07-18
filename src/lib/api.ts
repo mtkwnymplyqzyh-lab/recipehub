@@ -30,7 +30,10 @@ interface RecipeRow {
   profiles: { display_name: string } | null;
 }
 
-const RECIPE_SELECT = '*, profiles(display_name)';
+// Disambiguated with !author_id: PostgREST reports PGRST201 ("more than one
+// relationship was found") without this hint once more than one FK path
+// exists between recipes and profiles.
+const RECIPE_SELECT = '*, profiles!author_id(display_name)';
 
 function mapRecipe(row: RecipeRow): Recipe {
   return {

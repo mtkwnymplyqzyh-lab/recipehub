@@ -111,6 +111,14 @@ create policy "authors update own recipes"
 create policy "authors delete own recipes"
   on public.recipes for delete using (auth.uid() = author_id);
 
+-- Base table grants: RLS policies above gate WHICH rows are visible/writable,
+-- but Postgres also requires the base table-level privilege before RLS is
+-- even evaluated. This project has no default privileges on these tables,
+-- so every operation the app performs must be granted explicitly here.
+grant select on public.profiles to anon, authenticated;
+grant select on public.recipes to anon, authenticated;
+grant delete on public.recipes to authenticated;
+
 -- Column-level hardening: row policies above say WHICH rows may be written;
 -- these grants say WHICH columns. Clients may never write counter/audit
 -- columns (likes_count, created_at, updated_at) or reassign author_id after
@@ -125,10 +133,18 @@ revoke update on table public.profiles from anon, authenticated;
 grant update (display_name, photo_url, bio) on table public.profiles to authenticated;
 
 -- favorites: strictly private.
+grant select, insert, delete on public.favorites to authenticated;
+
 create policy "users read own favorites"
   on public.favorites for select using (auth.uid() = user_id);
 create policy "users add own favorites"
-  on public.favorites for insert with check (auth.uid() = user_id);
+  on public.favorites for insert with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.recipes r
+      where r.id = recipe_id and (r.is_public or r.author_id = auth.uid())
+    )
+  );
 create policy "users remove own favorites"
   on public.favorites for delete using (auth.uid() = user_id);
 

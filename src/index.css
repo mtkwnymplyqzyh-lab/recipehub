@@ -49,6 +49,7 @@
     --border: var(--color-border-light);
   }
 
+  
   .dark {
     --background: var(--color-bg-dark);
     --foreground: var(--color-text-main-dark);
@@ -58,10 +59,17 @@
 
   html {
     font-size: 17px;
+    color-scheme: light;
   }
 
   body {
     @apply bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-white text-black border border-gray-300;
   }
 }
 

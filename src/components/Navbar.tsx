@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { User, LogOut, UtensilsCrossed, Sun, Moon } from 'lucide-react';
+import { User, LogOut, UtensilsCrossed } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
@@ -10,7 +9,6 @@ import { LoginRequiredModal } from './LoginRequiredModal';
 export function Navbar() {
   const navigate = useNavigate();
   const { user, profile, signIn, logout } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   return (
@@ -34,14 +32,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
-            aria-label={isDarkMode ? 'מעבר למצב בהיר' : 'מעבר למצב כהה'}
-          >
-            {isDarkMode ? <Sun className="w-5 h-5" aria-hidden="true" /> : <Moon className="w-5 h-5" aria-hidden="true" />}
-          </button>
-
           {user ? (
             <div className="flex items-center gap-3">
               <Link to="/profile" className="flex items-center gap-2 group border-r border-stone-200 dark:border-stone-700 pr-4">
