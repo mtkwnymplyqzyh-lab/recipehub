@@ -21,6 +21,7 @@ export function CreateRecipe() {
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCuisine, setShowCustomCuisine] = useState(false);
   const [customCuisine, setCustomCuisine] = useState('');
+  const [originalImageUrl, setOriginalImageUrl] = useState('');
   
   const [formData, setFormData] = useState<{
     title: string; description: string; prepTime: number; category: string;
@@ -58,6 +59,7 @@ export function CreateRecipe() {
           ingredients: data.ingredients,
           instructions: data.instructions
         });
+        setOriginalImageUrl(data.imageUrl || '');
         if (!isStandard) { setShowCustomCategory(true); setCustomCategory(data.category); }
         if (data.cuisine && !isStandardCuisine) { setShowCustomCuisine(true); setCustomCuisine(data.cuisine); }
       } catch (error) {
@@ -119,7 +121,7 @@ export function CreateRecipe() {
         instructions: formData.instructions,
       };
       if (id) {
-        await updateRecipe(id, input);
+        await updateRecipe(id, input, originalImageUrl);
         toast('המתכון עודכן בהצלחה!');
       } else {
         await createRecipe(user.id, input);

@@ -129,14 +129,36 @@ export async function createRecipe(authorId: string, input: RecipeInput): Promis
   return data.id;
 }
 
-export async function updateRecipe(id: string, input: RecipeInput): Promise<void> {
+export async function updateRecipe(
+  id: string,
+  input: RecipeInput,
+  previousImageUrl?: string
+): Promise<void> {
   const { error } = await supabase.from('recipes').update(toRecipeRow(input)).eq('id', id);
   if (error) throw error;
+  if (previousImageUrl && previousImageUrl !== input.imageUrl) {
+    await removeStorageImageIfOwned(previousImageUrl);
+  }
 }
 
-export async function deleteRecipe(id: string): Promise<void> {
+export async function deleteRecipe(id: string, imageUrl?: string): Promise<void> {
   const { error } = await supabase.from('recipes').delete().eq('id', id);
   if (error) throw error;
+  if (imageUrl) {
+    await removeStorageImageIfOwned(imageUrl);
+  }
+}
+
+// Best-effort cleanup: only removes images we uploaded to our own bucket
+// (pasted external URLs are left alone). Failures are logged, not thrown —
+// a dangling image must never block a recipe delete/update from succeeding.
+async function removeStorageImageIfOwned(imageUrl: string): Promise<void> {
+  const marker = '/recipe-images/';
+  const index = imageUrl.indexOf(marker);
+  if (index === -1) return;
+  const path = imageUrl.slice(index + marker.length);
+  const { error } = await supabase.storage.from('recipe-images').remove([path]);
+  if (error) console.error('Failed to remove storage image:', error);
 }
 
 // --- Favorites ---
