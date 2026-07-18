@@ -65,7 +65,7 @@ export function RecipeDetail() {
   const handleDelete = async () => {
     if (!id) return;
     try {
-      await deleteRecipe(id, recipe?.imageUrl);
+      await deleteRecipe(id);
       toast('המתכון נמחק');
       navigate('/profile');
     } catch (err) {

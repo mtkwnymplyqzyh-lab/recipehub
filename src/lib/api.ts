@@ -129,11 +129,8 @@ export async function createRecipe(authorId: string, input: RecipeInput): Promis
   return data.id;
 }
 
-export async function updateRecipe(
-  id: string,
-  input: RecipeInput,
-  previousImageUrl?: string
-): Promise<void> {
+export async function updateRecipe(id: string, input: RecipeInput): Promise<void> {
+  const previousImageUrl = await getStoredImageUrl(id);
   const { error } = await supabase.from('recipes').update(toRecipeRow(input)).eq('id', id);
   if (error) throw error;
   if (previousImageUrl && previousImageUrl !== input.imageUrl) {
@@ -141,7 +138,8 @@ export async function updateRecipe(
   }
 }
 
-export async function deleteRecipe(id: string, imageUrl?: string): Promise<void> {
+export async function deleteRecipe(id: string): Promise<void> {
+  const imageUrl = await getStoredImageUrl(id);
   const { error } = await supabase.from('recipes').delete().eq('id', id);
   if (error) throw error;
   if (imageUrl) {
@@ -149,14 +147,26 @@ export async function deleteRecipe(id: string, imageUrl?: string): Promise<void>
   }
 }
 
+// Reads image_url straight from the DB rather than trusting a client-held
+// value — RLS on `recipes` already limits this to rows the caller may see.
+async function getStoredImageUrl(id: string): Promise<string | null> {
+  const { data, error } = await supabase.from('recipes').select('image_url').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data?.image_url ?? null;
+}
+
 // Best-effort cleanup: only removes images we uploaded to our own bucket
-// (pasted external URLs are left alone). Failures are logged, not thrown —
+// (pasted external URLs are left alone), and only from the caller's own
+// storage folder — Storage RLS enforces this too, but checking here means
+// we never even attempt a cross-user path. Failures are logged, not thrown —
 // a dangling image must never block a recipe delete/update from succeeding.
 async function removeStorageImageIfOwned(imageUrl: string): Promise<void> {
   const marker = '/recipe-images/';
   const index = imageUrl.indexOf(marker);
   if (index === -1) return;
   const path = imageUrl.slice(index + marker.length);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !path.startsWith(`${user.id}/`)) return;
   const { error } = await supabase.storage.from('recipe-images').remove([path]);
   if (error) console.error('Failed to remove storage image:', error);
 }
