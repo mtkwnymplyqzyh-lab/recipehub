@@ -7,9 +7,7 @@ import { Plus, Minus, ChefHat, Save, ArrowRight, Image as ImageIcon } from 'luci
 import { isValidImageUrl } from '../lib/utils';
 import { toast } from '../components/ui/Toaster';
 import { motion } from 'motion/react';
-
-const DEFAULT_CATEGORIES = ['בשרי', 'חלבי', 'טבעוני', 'צמחוני', 'קינוחים'];
-const DEFAULT_CUISINES = ['הודי', 'פרסי', 'מרוקאי', 'איטלקי', 'אסייתי'];
+import { DEFAULT_CATEGORIES, DEFAULT_CUISINES } from '../lib/categories';
 
 export function CreateRecipe() {
   const { id } = useParams();

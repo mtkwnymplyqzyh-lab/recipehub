@@ -4,10 +4,21 @@ import { useAuth } from '../contexts/AuthContext';
 const SEEN_KEY = 'recipehub_onboarding_seen';
 
 export interface TourStep {
-  selector: string;
+  /** CSS selector of the element to spotlight. Omitted for standalone steps
+   *  (e.g. "install the app") that aren't tied to an on-page element. */
+  selector?: string;
+  id?: string;
   title: string;
   text: string;
   requiresAuth?: boolean;
+}
+
+function isStandaloneDisplay(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
 }
 
 const ALL_STEPS: TourStep[] = [
@@ -15,6 +26,7 @@ const ALL_STEPS: TourStep[] = [
   { selector: '[data-tour="categories"]', title: 'סינון לפי קטגוריה', text: 'לחצו על קטגוריה כדי לראות רק מתכונים מהסוג הזה.' },
   { selector: '[data-tour="create-recipe"]', title: 'הוספת מתכון', text: 'כאן תוכלו לשתף מתכון חדש משלכם עם כולם.' },
   { selector: '[data-tour="profile-link"]', title: 'הפרופיל שלכם', text: 'כאן תמצאו את כל המתכונים והמועדפים שלכם במקום אחד.', requiresAuth: true },
+  { id: 'install', title: 'התקנת האפליקציה', text: '' },
 ];
 
 interface OnboardingTourContextType {
@@ -34,7 +46,11 @@ export function OnboardingTourProvider({ children }: { children: React.ReactNode
   const [isActive, setIsActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const steps = ALL_STEPS.filter(s => !s.requiresAuth || !!user);
+  const steps = ALL_STEPS.filter(s => {
+    if (s.requiresAuth && !user) return false;
+    if (s.id === 'install' && isStandaloneDisplay()) return false;
+    return true;
+  });
 
   const finish = useCallback(() => {
     setIsActive(false);

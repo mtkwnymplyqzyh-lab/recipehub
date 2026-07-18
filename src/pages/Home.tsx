@@ -9,8 +9,10 @@ import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useOnboardingTour } from '../hooks/useOnboardingTour';
+import { DEFAULT_CATEGORIES, DEFAULT_CUISINES } from '../lib/categories';
 
-const CATEGORIES: (Category | 'הכל')[] = ['הכל', 'בשרי', 'חלבי', 'טבעוני', 'צמחוני', 'קינוחים', 'אחר'];
+const CATEGORIES: (Category | 'הכל')[] = ['הכל', ...DEFAULT_CATEGORIES, 'אחר'];
+const CUISINES: string[] = ['הכל', ...DEFAULT_CUISINES, 'אחר'];
 
 export function Home() {
   const navigate = useNavigate();
@@ -26,11 +28,6 @@ export function Home() {
     startIfNotSeen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const cuisines = useMemo(
-    () => ['הכל', ...Array.from(new Set(recipes.map(r => r.cuisine).filter(Boolean))) as string[]],
-    [recipes]
-  );
 
   const handleCategoryChange = (cat: Category | 'הכל') => {
     setActiveCategory(cat);
@@ -51,7 +48,11 @@ export function Home() {
       r.title.toLowerCase().includes(q) ||
       r.ingredients.some(i => i.name.toLowerCase().includes(q));
 
-    const matchesCuisine = activeCuisine === 'הכל' || r.cuisine === activeCuisine;
+    const matchesCuisine =
+      activeCuisine === 'הכל' ||
+      (activeCuisine === 'אחר'
+        ? !!r.cuisine && !DEFAULT_CUISINES.includes(r.cuisine)
+        : r.cuisine === activeCuisine);
 
     return matchesSearch && matchesCuisine;
   }), [recipes, searchQuery, activeCuisine]);
@@ -105,7 +106,7 @@ export function Home() {
           <h2 className="font-serif text-3xl font-bold text-[var(--foreground)]">גלו לפי מטבחים</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          {cuisines.map((cuisine) => (
+          {CUISINES.map((cuisine) => (
             <button
               key={cuisine}
               onClick={() => setActiveCuisine(cuisine)}

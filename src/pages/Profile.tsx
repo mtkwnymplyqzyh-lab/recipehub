@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserRecipes } from '../hooks/useRecipes';
 import { RecipeCard } from '../components/RecipeCard';
-import { ChefHat, Heart, Book, Settings, User as UserIcon, X, Save, Image as ImageIcon } from 'lucide-react';
+import { ChefHat, Heart, Book, Settings, X, Save, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { getProfile, updateProfile, getFavoriteRecipes, uploadRecipeImage } from '../lib/api';
@@ -176,14 +176,22 @@ export function Profile() {
                 <div className="space-y-2 text-center">
                   <div className="relative inline-block">
                     <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary-100 shadow-lg mx-auto">
-                      {editForm.photoURL ? (
-                        <img src={editForm.photoURL} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-300">
-                          <UserIcon className="w-10 h-10" />
-                        </div>
-                      )}
+                      <img
+                        src={editForm.photoURL || '/default-avatar.png'}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
+                    {editForm.photoURL && (
+                      <button
+                        type="button"
+                        onClick={() => setEditForm(prev => ({ ...prev, photoURL: '' }))}
+                        className="absolute -top-1 -left-1 p-1.5 bg-stone-900 text-white rounded-full border-2 border-white hover:bg-red-500 transition-colors"
+                        aria-label="הסרת תמונת פרופיל"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   <label className="inline-flex items-center gap-2 text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl hover:bg-primary-100 cursor-pointer transition-colors">
                     {uploadingPhoto ? (
