@@ -27,19 +27,20 @@ interface RecipeRow {
   likes_count: number;
   created_at: string;
   updated_at: string;
-  profiles: { display_name: string } | null;
+  profiles: { display_name: string; photo_url: string | null } | null;
 }
 
 // Disambiguated with !author_id: PostgREST reports PGRST201 ("more than one
 // relationship was found") without this hint once more than one FK path
 // exists between recipes and profiles.
-const RECIPE_SELECT = '*, profiles!author_id(display_name)';
+const RECIPE_SELECT = '*, profiles!author_id(display_name, photo_url)';
 
 function mapRecipe(row: RecipeRow): Recipe {
   return {
     id: row.id,
     authorId: row.author_id,
     authorName: row.profiles?.display_name ?? 'שף',
+    authorPhotoURL: row.profiles?.photo_url ?? undefined,
     title: row.title,
     description: row.description,
     ingredients: row.ingredients,

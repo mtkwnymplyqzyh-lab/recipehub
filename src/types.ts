@@ -19,6 +19,7 @@ export interface Recipe {
   id: string;
   authorId: string;
   authorName: string;
+  authorPhotoURL?: string;
   title: string;
   description: string;
   ingredients: Ingredient[];

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getRecipe, isFavorite as fetchIsFavorite, toggleFavorite, deleteRecipe } from '../lib/api';
 import { Recipe } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, ChefHat, Heart, ArrowRight, Edit2, Trash2, CheckCircle2, User, Utensils, Sparkles, MapPin } from 'lucide-react';
+import { Clock, ChefHat, Heart, ArrowRight, Edit2, Trash2, CheckCircle2, Utensils, Sparkles, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from '../components/ui/Toaster';
@@ -219,9 +219,11 @@ export function RecipeDetail() {
 
             <div className="flex items-center gap-6 pt-4 border-t border-[var(--border)]">
               <Link to={`/profile/${recipe.authorId}`} className="flex items-center gap-3 group">
-                <div className="w-12 h-12 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-[var(--card)] shadow-sm group-hover:border-primary-500 transition-colors" aria-hidden="true">
-                  <User className="w-6 h-6 text-stone-400 dark:text-stone-500 group-hover:text-primary-500 transition-colors" />
-                </div>
+                <img
+                  src={recipe.authorPhotoURL || '/default-avatar.png'}
+                  alt={recipe.authorName}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-[var(--card)] shadow-sm group-hover:border-primary-500 transition-colors"
+                />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-1">יוצר/ת המתכון</p>
                   <p className="text-base font-bold text-[var(--foreground)] group-hover:text-primary-600 transition-colors">{recipe.authorName}</p>

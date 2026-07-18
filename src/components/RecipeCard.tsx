@@ -47,11 +47,16 @@ export const RecipeCard = React.memo(function RecipeCard({ recipe }: RecipeCardP
       </Link>
 
       <div className="p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Link to={`/profile/${recipe.authorId}`} className="text-xs uppercase tracking-widest font-bold text-primary-600 dark:text-primary-400 hover:underline">
+        <Link to={`/profile/${recipe.authorId}`} className="flex items-center gap-2 mb-2 group/author w-fit">
+          <img
+            src={recipe.authorPhotoURL || '/default-avatar.png'}
+            alt={recipe.authorName}
+            className="w-5 h-5 rounded-full object-cover border border-primary-100"
+          />
+          <span className="text-xs uppercase tracking-widest font-bold text-primary-600 dark:text-primary-400 group-hover/author:underline">
             מאת {recipe.authorName}
-          </Link>
-        </div>
+          </span>
+        </Link>
         <h3 className="font-serif text-xl font-bold text-[var(--foreground)] mb-2 group-hover:text-primary-600 transition-colors line-clamp-1">
           {recipe.title}
         </h3>
