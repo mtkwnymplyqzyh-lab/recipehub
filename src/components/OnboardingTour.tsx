@@ -104,6 +104,7 @@ export function OnboardingTour() {
   if (!isStandaloneStep && !rect) return null;
 
   const bubbleWidth = Math.min(window.innerWidth - VIEWPORT_MARGIN * 2, 380);
+  const bubbleLeft = Math.max(VIEWPORT_MARGIN, (window.innerWidth - bubbleWidth) / 2);
 
   // Anchor below the target if there's more room below than above; then
   // clamp so the bubble can never render partly off-screen top/bottom.
@@ -154,7 +155,7 @@ export function OnboardingTour() {
         animate={{ opacity: 1, y: 0, top: bubbleTop }}
         exit={{ opacity: 0 }}
         className="fixed z-[9999] bg-[var(--card)] rounded-2xl shadow-2xl p-6 space-y-4"
-        style={{ width: bubbleWidth, left: '50%', transform: 'translateX(-50%)' }}
+        style={{ width: bubbleWidth, left: bubbleLeft }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tour-step-title"
