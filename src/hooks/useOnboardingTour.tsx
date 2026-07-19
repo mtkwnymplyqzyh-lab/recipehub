@@ -21,11 +21,14 @@ function isStandaloneDisplay(): boolean {
   );
 }
 
+// Ordered to match the page's actual top-to-bottom layout: the sticky
+// navbar (profile link) sits above everything, then the hero's create-
+// recipe button, then the search box, then the category filter row.
 const ALL_STEPS: TourStep[] = [
+  { selector: '[data-tour="profile-link"]', title: 'הפרופיל שלכם', text: 'כאן תמצאו את כל המתכונים והמועדפים שלכם במקום אחד.', requiresAuth: true },
+  { selector: '[data-tour="create-recipe"]', title: 'הוספת מתכון', text: 'כאן תוכלו לשתף מתכון חדש משלכם עם כולם.' },
   { selector: '[data-tour="search"]', title: 'חיפוש מהיר', text: 'חפשו מתכון לפי שם או רכיב, בכל רגע שתרצו.' },
   { selector: '[data-tour="categories"]', title: 'סינון לפי קטגוריה', text: 'לחצו על קטגוריה כדי לראות רק מתכונים מהסוג הזה.' },
-  { selector: '[data-tour="create-recipe"]', title: 'הוספת מתכון', text: 'כאן תוכלו לשתף מתכון חדש משלכם עם כולם.' },
-  { selector: '[data-tour="profile-link"]', title: 'הפרופיל שלכם', text: 'כאן תמצאו את כל המתכונים והמועדפים שלכם במקום אחד.', requiresAuth: true },
   { id: 'install', title: 'התקנת האפליקציה', text: '' },
 ];
 

@@ -135,12 +135,6 @@ export function Profile() {
               <p className="text-2xl font-bold text-[var(--foreground)]">{recipes.length}</p>
               <p className="text-xs font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">מתכונים</p>
             </div>
-            {isOwnProfile && (
-              <div className="text-center md:text-right">
-                <p className="text-2xl font-bold text-[var(--foreground)]">0</p>
-                <p className="text-xs font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">עוקבים</p>
-              </div>
-            )}
           </div>
         </div>
       </header>
